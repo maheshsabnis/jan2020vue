@@ -1,10 +1,15 @@
 <template>
   <div class="container">
-    <h2>The Dynamic Table</h2>
-    <span>{{ message | ucase }}</span>
+    <h2>HTTP Calls from Component</h2>
+
     <div class="form-group">
       <label>Product Row Id</label>
-      <input type="text" class="form-control" v-model="prd.ProductRowId" />
+      <input
+        type="text"
+        class="form-control"
+        disabled
+        v-model="prd.ProductRowId"
+      />
     </div>
     <div class="form-group">
       <label>Product Id</label>
@@ -58,6 +63,7 @@
 </template>
 <script>
 import DynamicTableComponent from "./dynamictablecomponent.vue";
+import { HttpService } from "./../../services/httpservice";
 // entity class
 var product = {
   ProductRowId: 0,
@@ -68,8 +74,12 @@ var product = {
   Description: "",
   BasePrice: 0
 };
+// define an instance of the service class
+const variable = {
+  serve: new HttpService()
+};
 export default {
-  name: "ProductAppDynamicComponent",
+  name: "ProductServiceComponent",
   components: {
     DynamicTableComponent
   },
@@ -77,38 +87,23 @@ export default {
     return {
       prd: product,
       message: "The Filter",
-      products: [
-        {
-          ProductRowId: 1,
-          ProductId: "Prd0001",
-          ProductName: "Laptop",
-          CategoryName: "Electronics",
-          Manufacturer: "HP",
-          Description: "Gaming",
-          BasePrice: 100000
-        },
-        {
-          ProductRowId: 2,
-          ProductId: "Prd0002",
-          ProductName: "Iron",
-          CategoryName: "Electrical",
-          Manufacturer: "Bajaj",
-          Description: "Cloth-Press",
-          BasePrice: 1000
-        },
-        {
-          ProductRowId: 3,
-          ProductId: "Prd0003",
-          ProductName: "Biscuts",
-          CategoryName: "Food",
-          Manufacturer: "Parle",
-          Description: "Energy",
-          BasePrice: 100
-        }
-      ],
+      products: [],
       Categories: ["Electronics", "Electrical", "Food"],
       Manufacturers: ["HP", "IBM", "Bajaj", "Godrej", "Parle"]
     };
+  },
+  mounted() {
+    // subscribe to the promise
+    variable.serve
+      .getData()
+      .then(resp => {
+        console.log(JSON.stringify(resp.data));
+
+        this.products = resp.data; // success
+      })
+      .catch(err => {
+        console.log(`Error Occured ${err}`); // failure
+      });
   },
   methods: {
     // clearing the object
@@ -123,7 +118,16 @@ export default {
     },
     save: function() {
       let p = Object.assign({}, this.prd);
-      this.products.push(p);
+      variable.serve
+        .postData(p)
+        .then(resp => {
+          console.log(JSON.stringify(resp.data));
+          this.prd.ProductRowId = resp.data.ProductRowId;
+          this.products.push(resp.data); // success
+        })
+        .catch(err => {
+          console.log(`Error Occured ${err}`); // failure
+        });
     },
     getSelectedProduct: function(p) {
       let selProduct = Object.assign({}, p);
